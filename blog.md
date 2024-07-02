@@ -5,7 +5,6 @@ permalink: /blog/
 ---
 
 ## Blog
-Welcome to my blog! Here are my latest posts:
 
 <ul>
   {% for post in site.posts %}
