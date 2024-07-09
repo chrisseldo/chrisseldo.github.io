@@ -70,9 +70,11 @@
     footer {
       font-size: 12px;
       color: #777;
-      padding: 10px 0;
+      padding: 10px 20px; /* Match the padding with nav */
       margin-top: 20px;
       border-top: 1px solid #eaeaea;
+      width: 100%; /* Ensure footer takes full width */
+      box-sizing: border-box; /* Include padding in width calculation */
     }
     nav {
       margin-bottom: 20px;
@@ -108,13 +110,18 @@
         position: relative;
         border-left: none;
         border-bottom: 1px solid #eaeaea;
+        padding: 0; /* Remove padding to align with content width */
       }
       .content {
         padding: 10px;
+        width: 100%; /* Ensure content takes full width */
       }
       nav {
         display: flex;
         justify-content: space-around;
+        width: 100%; /* Ensure nav takes full width */
+        padding: 10px 20px; /* Match the footer padding */
+        box-sizing: border-box; /* Include padding in width calculation */
       }
       nav a {
         margin: 5px;
