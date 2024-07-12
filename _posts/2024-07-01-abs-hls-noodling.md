@@ -9,18 +9,19 @@ excerpt_separator: <!--more-->
 I've been messing around with ABS a bit and thought I'd throw up this little project in case anyone else wanted to mess around with it too. I learned a lot more about the [FFmpeg](https://ffmpeg.org) command line tool, ABS, HMS, and other random bits throughout the process.
 <!--more-->
 
-## Prerequsites 
+# Prerequsites 
 First, capture or snip a little video that you can quickly generate HLS segements and playlists for different resolutions. For example, I used a 8 sec video of my little lady swinging in Tiburon, but not to plaster her adorable face across the internet, I've opted to use the Blue Angles from SF's Fleet Week 2023.
 
 Also, if you're on a Mac and are using a video that is from your Photos library, my snippets below assume you're using a `.mp4` and not a `.MOV`. You can use FFmpeg to perform the conversion pretty easily. 
 
 ```bash
-  ffmpeg -i input.mov -c:v libx264 -c:a aac -movflags +faststart input.mp4
+ffmpeg -i input.mov -c:v libx264 -c:a aac -movflags +faststart input.mp4
 ```
 
-## Steps 
+# Steps 
 
-### Transcode it
+## Transcode it
+
 Use the following FFmpeg command to generate different resolutions of segments:
 ```bash
 ffmpeg -i input.mp4 -filter_complex \
@@ -32,11 +33,64 @@ ffmpeg -i input.mp4 -filter_complex \
   -map "[v360]" -map a -c:v:2 h264 -b:v:2 500k -maxrate:v:2 500k -bufsize:v:2 1000k -hls_time 4 -hls_playlist_type vod -hls_segment_filename "360p_%03d.ts" 360p.m3u8
 ```
 
-_Note: I used `oh*a/` inside FFmpeg's scale filter to calculate the width to maintain the aspect ratio while also keeping it even. Video codecs typically require width (and sometimes height) to be even. From what I understand, it's because of how video data is stored + processed in blocks of pixels._
+*Note: I used `oh*a/` inside FFmpeg's scale filter to calculate the width to maintain the aspect ratio while also keeping it even. Video codecs typically require width (and sometimes height) to be even. From what I understand, it's because of how video data is stored + processed in blocks of pixels.*
 
-### er.. Platlist it
+You now have, very simply, different resolutions of the same video. We've converted it into `.m3u8` which stands for "MPEG version 3.0 URL" (with the '8' indicating UTF-8 encoding.) `.m3u8` is a playlist file used in HLS to organize and list the sequence of media segments (usually `.ts` files) for streaming. Which leads us to these `.ts` files that we generated. 
 
-ABR allows the video player to switch between different quality levels (bitrate and resolution) based on the viewer's network conditions. This is the basis for how Netflix and Disney+ ensure a smooth viewing experience with the least amount of buffering and drops in video quality when streaming on device.
+The `.ts` files are **MPEG-2 Transport Stream files** used in HTTP Live Streaming (HLS) to segment video data. they contain chunks of video and audio data that are sequentially streamed to a client, allowing for adaptive bitrate streaming and more efficient video playback over the internet.
+
+Ok, so here is the same video in 720p, 480p, and 360p, respectively:
+
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>HLS Streaming</title>
+    <link href="https://vjs.zencdn.net/7.11.4/video-js.css" rel="stylesheet" />
+    <script src="https://vjs.zencdn.net/7.11.4/video.js"></script>
+</head>
+<body>
+    <video id="my-video" class="video-js vjs-default-skin" controls preload="auto" width="640" height="360"
+           data-setup='{}'>
+        <source src="{{ site.baseurl }}/assets/videos/360p.m3u8" type="application/x-mpegURL">
+    </video>
+</body>
+</html>
+
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>HLS Streaming</title>
+    <link href="https://vjs.zencdn.net/7.11.4/video-js.css" rel="stylesheet" />
+    <script src="https://vjs.zencdn.net/7.11.4/video.js"></script>
+</head>
+<body>
+    <video id="my-video" class="video-js vjs-default-skin" controls preload="auto" width="640" height="360"
+           data-setup='{}'>
+        <source src="{{ site.baseurl }}/assets/videos/480p.m3u8" type="application/x-mpegURL">
+    </video>
+</body>
+</html>
+
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>HLS Streaming</title>
+    <link href="https://vjs.zencdn.net/7.11.4/video-js.css" rel="stylesheet" />
+    <script src="https://vjs.zencdn.net/7.11.4/video.js"></script>
+</head>
+<body>
+    <video id="my-video" class="video-js vjs-default-skin" controls preload="auto" width="640" height="360"
+           data-setup='{}'>
+        <source src="{{ site.baseurl }}/assets/videos/720p.m3u8" type="application/x-mpegURL">
+    </video>
+</body>
+</html>
+
+## er.. Platlist it
+
+Now, ABR allows the video player to switch between different quality levels (bitrate and resolution) based on the viewer's network conditions. This is the basis for how Netflix and Disney+ ensure a smooth viewing experience with the least amount of buffering and drops in video quality when streaming on device.
+
+What we want to do now is create a playlist that contains all three resolutions into a "master" playlist.
 
 ```bash
 echo "#EXTM3U
@@ -47,12 +101,11 @@ echo "#EXTM3U
 #EXT-X-STREAM-INF:BANDWIDTH=500000,RESOLUTION=640x360
 360p.m3u8" > master.m3u8
 ```
-There's a ton to look at in FFmpeg's docs [here](https://ffmpeg.org/ffmpeg-formats.html#hls-2).
+There's a ton more to look at in FFmpeg's docs [here](https://ffmpeg.org/ffmpeg-formats.html#hls-2).
 
+## Serve it
 
-### Serve it
-
-Next, we'll want to play the video on a webpage someplace. We can use [Video.js](https://videojs.com/guides/embeds/)'s player (popular video player library) to handle the HLS playback. It's a fantastic library that I've used in the past, and required seemingly little config.
+We'll want to play the video on a webpage someplace. We can use [Video.js](https://videojs.com/guides/embeds/)'s player (popular video player library) to handle the HLS playback. It's a fantastic library that I've used in the past, and required seemingly little config.
 
 You can then fire up a server to see it in action. Python's SimpleServer did the trick:
 
@@ -60,7 +113,7 @@ You can then fire up a server to see it in action. Python's SimpleServer did the
 python -m http.server 8000
 ```
 
-### So what happens?
+## So what happens?
 
 <html lang="en">
 <head>
